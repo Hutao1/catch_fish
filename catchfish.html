@@ -45,7 +45,7 @@
     const resource=[
       'fish1','fish2','fish3','fish4','fish5',
       'cannon1','cannon2','cannon3','cannon4','cannon5','cannon6','cannon7',
-      'bottom','bullet','coinAni1','coinAni2','web'
+      'bottom','bullet','coinAni1','coinAni2','web','coinText'
     ];
     var BULLET_SIZE=[
       null,
@@ -252,6 +252,16 @@
         oA.play();
       }
     }
+	var WEB_SIZE = [
+		null,
+      {x: 330, y: 373, w: 91, h: 86},
+      {x: 13, y: 414, w: 108, h: 108},
+      {x: 175, y: 369, w: 130, h: 124},
+      {x: 255, y: 194, w: 147, h: 147},
+      {x: 0, y: 244, w: 164, h: 152},
+      {x: 240, y: 0, w: 182, h: 178},
+      {x: 20, y: 21, w: 197, h: 200}
+	];
 	//网
 	class Web {
       constructor(type){
@@ -266,8 +276,8 @@
         gd.translate(this.x,this.y);
         gd.scale(this.scale,this.scale);
         gd.drawImage(JSON['web'],
-          23,21,199,201,
-          -199/2,-201/2,199,201
+          WEB_SIZE[this.type].x,WEB_SIZE[this.type].y,WEB_SIZE[this.type].w,WEB_SIZE[this.type].h,
+          -WEB_SIZE[this.type].w/2,-WEB_SIZE[this.type].h/2,WEB_SIZE[this.type].w,WEB_SIZE[this.type].h
         );
         gd.restore();
       }
@@ -290,6 +300,7 @@
       {w: 74, h: 90},
       {w: 74, h: 94}
     ];
+    //炮筒
     class Cannon {
       constructor(type){
         this.type=type||1;
@@ -322,6 +333,33 @@
         },30);
       }
     }
+    //积分
+    class Jifen{
+    	constructor(){
+    		this.x = 0;
+    		this.y = 0;
+    		this.sum = 0;
+    		this.timer =null;
+    	}
+    	show(gd){
+	    		var o = this.sum%10;
+	    		var t = parseInt(this.sum/10)%10;
+	    		var h = parseInt(this.sum/100)%10;
+	    		var s = parseInt(this.sum/1000)%10;
+	    		var m = parseInt(this.sum/10000)%10;
+	    		var brr = [m,s,h,t,o];
+	    		for(var i =0;i < brr.length; i++){
+	    			gd.save();
+	    			gd.translate((i)*24+25,585);
+	    			gd.scale(0.41,0.41);
+	    			gd.drawImage(JSON['coinText'],
+	    			brr[i]*36,0,36,49,
+	    			-18,-24.5,36,49
+	    			);
+	    			gd.restore();
+	    		}
+    	}
+    }
 </script>
 <script>
 	window.onload = function(){
@@ -333,6 +371,7 @@
 		var arrCoin = [];
 		var arrDiefish = [];
 		var arrWeb = [];
+        var jifen = new Jifen()
 		loadingImage(resource,function(){
 			setInterval(function(){
 				gd.clearRect(0,0,can.width,can.height);
@@ -341,7 +380,7 @@
 		            0,0,765,70,
 		            0,532,765,70
 		          );
-		          
+		          jifen.show(gd);
 		          //统一绘制炮弹
 		          for(var i=0;i<arrBullet.length;i++){
 		            arrBullet[i].draw(gd);
@@ -350,7 +389,7 @@
           		c.draw(gd);
           		
 				//随机鱼的位置
-				if(Math.random() < 0.01){
+				if(Math.random() < 0.02){
 					var f = new Fish(rnd(1,5));
 					if(Math.random()>0.5){
 						f.x = -100;
@@ -409,31 +448,37 @@
           					var x = arrfish[i].x;
           					var y = arrfish[i].y;
           					var rotate = arrfish[i].rotate;
-          					clearInterval( arrfish[i].timermove );
-							clearInterval( arrfish[i].timerw );
-							arrfish.splice(i--,1);
+          					//炮弹清除
 							clearInterval(arrBullet[j].timer);
 							arrBullet.splice(j--,1);
-							//出金币
-							var coin = new Coin(type);
-							coin.x = x;
-							coin.y = y;
-							arrCoin.push(coin);
-							setTimeout(function(){
-								arrCoin.shift();
-							},500)
-							//出死鱼
-							var diefish = new DieFish(type);
-							diefish.x = x;
-							diefish.y = y;
-							diefish.rotate = rotate;
-							arrDiefish.push(diefish);
-							setTimeout(function(){
-			                 clearInterval(arrDiefish[0].timer);
-			                 arrDiefish.shift();
-			                },500);
+							if(Math.random() < 1/2/type*(c.type/5+1)){
+								//积分增加
+								jifen.sum+=type*10;
+								//活鱼清除
+	          					clearInterval( arrfish[i].timermove );
+								clearInterval( arrfish[i].timerw );
+								arrfish.splice(i--,1);
+								//出金币
+								var coin = new Coin(type);
+								coin.x = x;
+								coin.y = y;
+								arrCoin.push(coin);
+								setTimeout(function(){
+									arrCoin.shift();
+								},500)
+								//出死鱼
+								var diefish = new DieFish(type);
+								diefish.x = x;
+								diefish.y = y;
+								diefish.rotate = rotate;
+								arrDiefish.push(diefish);
+								setTimeout(function(){
+				                 clearInterval(arrDiefish[0].timer);
+				                 arrDiefish.shift();
+				                },500);
+							}
 			                //网
-			                var web = new Web();
+			                var web = new Web(c.type);
 			                web.x = x;
 			                web.y = y;
 			                arrWeb.push(web);
@@ -460,9 +505,14 @@
 	          b.x=c.x;
 	          b.y=c.y;
 	          arrBullet.push(b);
-	
-	
 	        };
+	        can.onmousemove = function(ev){
+	        	var x=ev.clientX-can.offsetLeft-c.x;
+	          	var y=c.y-(ev.clientY-can.offsetTop);
+	          	var d = 90-a2d(Math.atan2(y,x));
+	          	c.rotate=d;//规定炮角度
+	         	 //发射动作
+	        }
 	        document.onkeydown = function(e){
 	        	if(e.keyCode == 39){
 	        		if(c.type < 7)
